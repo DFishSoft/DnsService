@@ -130,8 +130,14 @@ namespace DNSProxy {
                 }
             }
 
-            //如果存在缓存数据
-            if (dataBase.ReadCache(dnsPack, out byte[] cache)) {
+            
+            byte[] cache;
+            if (dataBase.ReadHost(dnsPack, out cache)) {
+                //如果存在host
+                Response(cache, client);
+
+            } else if (dataBase.ReadCache(dnsPack, out cache)) {
+                //如果存在缓存数据
                 DnsPack dnsCache = new DnsPack(cache) {
                     //这里需要修改识别标识
                     Sign = dnsPack.Sign,

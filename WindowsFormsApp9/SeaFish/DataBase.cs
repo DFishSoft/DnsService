@@ -2,6 +2,7 @@
 using System.Data;
 using System.Data.OleDb;
 using System.Diagnostics;
+using System.Net;
 using System.Windows.Forms;
 
 namespace SeaFish {
@@ -43,10 +44,9 @@ namespace SeaFish {
                 if (!isInit) throw new Exception();
                 OleDbCommand cmd;
                 cmd = conn.CreateCommand();
-                cmd.CommandText = "select QueryDns from dnscache where QueryName = ? and QueryType = ? and QueryClass = ?";
+                cmd.CommandText = "select QueryDns from dnscache where QueryName = ? and QueryType = ?";
                 cmd.Parameters.Add("@QueryName", OleDbType.VarChar).Value = dnsPack.QueryRecords[0].QueryName;
                 cmd.Parameters.Add("@QueryType", OleDbType.VarChar).Value = dnsPack.QueryRecords[0].QueryType;
-                cmd.Parameters.Add("@QueryClass", OleDbType.VarChar).Value = dnsPack.QueryRecords[0].QueryClass;
                 byte[] bytes = (byte[])cmd.ExecuteScalar();
                 cache = bytes;
                 return cache != null;
@@ -55,6 +55,51 @@ namespace SeaFish {
                 return false;
             }
         }
+
+        /// <summary>
+        /// 读取host表
+        /// </summary>
+        /// <param name="dnsPack"></param>
+        /// <param name="cache"></param>
+        /// <returns></returns>
+        public bool ReadHost(DNSProxy.DnsPack dnsPack, out byte[] cache) {
+            try {
+                if (!isInit) throw new Exception();
+                OleDbCommand cmd;
+                cmd = conn.CreateCommand();
+                cmd.CommandText = "select QueryDns from dnsHost where QueryName = ? and QueryType = ?";
+                cmd.Parameters.Add("@QueryName", OleDbType.VarChar).Value = dnsPack.QueryRecords[0].QueryName;
+                cmd.Parameters.Add("@QueryType", OleDbType.VarChar).Value = dnsPack.QueryRecords[0].QueryType;
+                string Value = (string)cmd.ExecuteScalar();
+
+                if (Value != null && Value != string.Empty ) {
+                    switch (dnsPack.QueryRecords[0].QueryType) {
+                        case DNSProxy.QueryType.A:
+                            IPAddress iP;
+                            if (!IPAddress.TryParse(Value, out iP)) break;
+                            string[] ips = iP.ToString().Split('.');
+                            byte[] ipBtye = new byte[] { byte.Parse(ips[0]), byte.Parse(ips[1]), byte.Parse(ips[2]), byte.Parse(ips[3]) };
+                            dnsPack.ResouceRecords.Add(new DNSProxy.ResouceRecord {
+                                QueryClass = 1,
+                                QueryType = DNSProxy.QueryType.A,
+                                QueryName = dnsPack.QueryRecords[0].QueryName,
+                                Datas = ipBtye,
+                                TTL = 0
+                            });
+                                break;
+                        default:
+                            break;
+                    }
+                    cache = dnsPack.ToBytes();
+                    return cache != null;
+                }
+                throw new Exception();
+            } catch (Exception) {
+                cache = new byte[0];
+                return false;
+            }
+        }
+
 
         /// <summary>
         /// 写入缓存到数据库

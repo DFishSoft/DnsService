@@ -5,8 +5,16 @@ using System.Windows.Forms;
 
 namespace SeaFish {
     public partial class Form1 : Form {
+        public string[] args;
+
         public Form1() {
             InitializeComponent();
+            this.args = new string[] { };
+        }
+
+        public Form1(string[] args) {
+            InitializeComponent();
+            this.args = args;
         }
 
         DNSProxy.Server proxy = new DNSProxy.Server();
@@ -20,13 +28,20 @@ namespace SeaFish {
             tlStatus.ForeColor = Color.Red;
             proxy.SumChanged += proxy_SumChanged;
 
-
             if (Settings.Custom.SavePoint) {
                 this.tlVersion.Text = "Fish dns v1.0";
                 this.Left = Settings.Custom.WindowsPoin.X;
                 this.Top = Settings.Custom.WindowsPoin.Y;
             }
             notifyIcon1.Visible = true;
+
+            foreach (string arg in this.args) {
+                if (arg == "-h") {
+                    this.WindowState = FormWindowState.Minimized;
+                    this.ShowInTaskbar = false;
+                }
+                if (arg == "-r") buStart_Click(null, null);
+            }
         }
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e) {
